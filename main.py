@@ -50,7 +50,12 @@ if __name__ == '__main__':
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
+
+    # 🚀 性能优化：启用 cuDNN benchmark
+    # 注意：如果需要完全可重复的结果，可能需要关闭 benchmark
+    torch.backends.cudnn.benchmark = True  # 自动寻找最优卷积算法
+    torch.backends.cudnn.deterministic = False  # 提高性能，但牺牲一些可重复性
+
     device = torch.device("cuda:0" if torch.cuda.is_available() and not args.no_cuda else "cpu")
 
     print(f"Using device: {device}")
@@ -110,7 +115,15 @@ if __name__ == '__main__':
     print('\n[2/4] Creating dataset...')
     try:
         train_dataset = TrainingDataset(num_user, num_item, user_item_all_dict, data_path, train_data, num_neg)
-        train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=num_workers)
+        # 🚀 优化 DataLoader 配置
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+            pin_memory=True,  # 加速 CPU-GPU 数据传输
+            persistent_workers=True  # 保持 worker 进程不被销毁
+        )
         print(f'✓ Dataset created successfully!')
     except Exception as e:
         print(f'✗ Error creating dataset: {e}')
