@@ -36,27 +36,27 @@ def data_load(dataset, has_v=True, has_a=True, has_t=True):
             v_feat = torch.tensor(np.load(v_feat_path, allow_pickle=True), dtype=torch.float).cuda()
             print(f"✓ 加载视觉特征: {v_feat.shape}")
         else:
+            v_feat = None
             if has_v:
-                print(f"⚠ 视觉特征文件不存在，使用随机初始化")
-            v_feat = torch.randn(num_item, 128).cuda() if has_v else None  # 使用128维随机特征
+                print(f"⚠ 视觉特征文件不存在，已忽略")
 
         # 加载音频特征
         if has_a and os.path.exists(a_feat_path):
             a_feat = torch.tensor(np.load(a_feat_path, allow_pickle=True), dtype=torch.float).cuda()
             print(f"✓ 加载音频特征: {a_feat.shape}")
         else:
+            a_feat = None
             if has_a:
-                print(f"⚠ 音频特征文件不存在，使用随机初始化")
-            a_feat = torch.randn(num_item, 128).cuda() if has_a else None
+                print(f"⚠ 音频特征文件不存在，已忽略")
 
         # 加载文本特征
         if has_t and os.path.exists(t_feat_path):
             t_feat = torch.tensor(np.load(t_feat_path, allow_pickle=True), dtype=torch.float).cuda()
             print(f"✓ 加载文本特征: {t_feat.shape}")
         else:
+            t_feat = None
             if has_t:
-                print(f"⚠ 文本特征文件不存在，使用随机初始化")
-            t_feat = torch.randn(num_item, 128).cuda() if has_t else None
+                print(f"⚠ 文本特征文件不存在，已忽略")
 
     elif dataset == 'amazon':
         num_user = 27044
@@ -68,8 +68,8 @@ def data_load(dataset, has_v=True, has_a=True, has_t=True):
             v_feat = torch.load(v_feat_path)
             print(f"✓ 加载视觉特征: {v_feat.shape}")
         else:
-            print(f"⚠ 视觉特征文件不存在，使用随机初始化")
-            v_feat = torch.randn(num_item, 128).cuda()
+            v_feat = None
+            print(f"⚠ 视觉特征文件不存在，已忽略")
 
         a_feat = None
         t_feat = None
@@ -88,18 +88,18 @@ def data_load(dataset, has_v=True, has_a=True, has_t=True):
             v_feat = torch.tensor(v_feat, dtype=torch.float).cuda()
             print(f"✓ 加载视觉特征: {v_feat.shape}")
         else:
-            v_feat = torch.randn(num_item, 128).cuda() if has_v else None
+            v_feat = None
             if has_v:
-                print(f"⚠ 视觉特征文件不存在，使用随机初始化")
+                print(f"⚠ 视觉特征文件不存在，已忽略")
 
         if has_a and os.path.exists(a_feat_path):
             a_feat = torch.load(a_feat_path)
             a_feat = torch.tensor(a_feat, dtype=torch.float).cuda()
             print(f"✓ 加载音频特征: {a_feat.shape}")
         else:
-            a_feat = torch.randn(num_item, 128).cuda() if has_a else None
+            a_feat = None
             if has_a:
-                print(f"⚠ 音频特征文件不存在，使用随机初始化")
+                print(f"⚠ 音频特征文件不存在，已忽略")
 
         if os.path.exists(t_feat_path):
             t_feat = torch.load(t_feat_path).cuda()
@@ -120,8 +120,8 @@ def data_load(dataset, has_v=True, has_a=True, has_t=True):
             v_feat = torch.tensor(v_feat, dtype=torch.float).cuda()
             print(f"✓ 加载视觉特征: {v_feat.shape}")
         else:
-            v_feat = torch.randn(num_item, 128).cuda()
-            print(f"⚠ 视觉特征文件不存在，使用随机初始化")
+            v_feat = None
+            print(f"⚠ 视觉特征文件不存在，已忽略")
 
         a_feat = t_feat = None
 
