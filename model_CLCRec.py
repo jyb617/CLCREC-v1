@@ -44,7 +44,7 @@ def scatter_mean_manual(src, index, dim=0):
 
 class CLCRec(torch.nn.Module):
     def __init__(self, num_user, num_item, num_warm_item, edge_index, reg_weight, dim_E, v_feat, a_feat, t_feat,
-                 temp_value, num_neg, lr_lambda, is_word, num_sample=0.5, use_neighbor_loss=True):
+                 temp_value, num_neg, lr_lambda, is_word, num_sample=0.5, use_neighbor_loss=False):
         super(CLCRec, self).__init__()
         self.num_user = num_user
         self.num_item = num_item
@@ -95,12 +95,21 @@ class CLCRec(torch.nn.Module):
         self.result = nn.init.xavier_normal_(torch.rand((num_user + num_item, dim_E))).cuda()
 
         # 初始化损失变量
-        self.contrastive_loss_1 = torch.tensor(0.0)
-        self.contrastive_loss_2 = torch.tensor(0.0)
-        self.neighbor_item_loss = torch.tensor(0.0)
+        # 🔧 修复：在GPU上创建tensor
+        self.contrastive_loss_1 = torch.tensor(0.0, device='cuda')
+        self.contrastive_loss_2 = torch.tensor(0.0, device='cuda')
+        self.neighbor_item_loss = torch.tensor(0.0, device='cuda')
 
     def build_user_item_graph(self, train_data):
         """构建用户-物品交互图，用于查找邻居"""
+        # 🚀 性能优化：如果禁用邻居损失，跳过图构建以节省初始化时间
+        if not self.use_neighbor_loss:
+            print("⚠️  邻居损失已禁用，跳过用户-物品图构建（加速初始化）")
+            self.user_items = {}
+            self.item_users = {}
+            self.user_neighbors = {}
+            return
+
         self.user_items = {}  # 用户交互的物品
         self.item_users = {}  # 物品被哪些用户交互
 
@@ -142,13 +151,14 @@ class CLCRec(torch.nn.Module):
         if self.t_feat is not None:
             if self.is_word:
                 # 使用改进的 scatter_mean
+                # 🔧 移除不必要的.cuda()，scatter_mean输出已在GPU上
                 t_feat = F.normalize(
                     scatter_mean_manual(
                         self.t_feat[self.word_tensor[1]],
                         self.word_tensor[0],
                         dim=0
                     )
-                ).cuda()
+                )
                 feature_list.append(t_feat)
             else:
                 feature_list.append(self.t_feat)
@@ -288,7 +298,11 @@ class CLCRec(torch.nn.Module):
         all_item_input = all_item_embedding.clone()
         num_to_replace = int(all_item_embedding.size(0) * self.num_sample)
         if num_to_replace > 0:
-            rand_index = torch.randint(0, all_item_embedding.size(0), (num_to_replace,)).cuda()
+            # 🔧 修复：直接在GPU上生成随机索引，避免CPU->GPU传输
+            rand_index = torch.randint(
+                0, all_item_embedding.size(0), (num_to_replace,),
+                device=all_item_embedding.device
+            )
             # 🔧 修复混合精度训练的类型不匹配问题
             all_item_input[rand_index] = all_item_feat[rand_index].to(all_item_input.dtype)
 
