@@ -289,7 +289,8 @@ class CLCRec(torch.nn.Module):
         num_to_replace = int(all_item_embedding.size(0) * self.num_sample)
         if num_to_replace > 0:
             rand_index = torch.randint(0, all_item_embedding.size(0), (num_to_replace,)).cuda()
-            all_item_input[rand_index] = all_item_feat[rand_index].clone()
+            # 🔧 修复混合精度训练的类型不匹配问题
+            all_item_input[rand_index] = all_item_feat[rand_index].to(all_item_input.dtype)
 
         self.contrastive_loss_1 = self.loss_contrastive(head_embed, head_feat, self.temp_value)
         self.contrastive_loss_2 = self.loss_contrastive(user_embedding, all_item_input, self.temp_value)
@@ -311,8 +312,10 @@ class CLCRec(torch.nn.Module):
                     (torch.sqrt((all_item_embedding ** 2).sum(1))).mean()) / 2
 
         # 更新result
-        self.result = torch.cat((self.id_embedding[:self.num_user + self.num_warm_item],
-                                 feature[self.num_warm_item:]), dim=0)
+        # 🔧 确保类型一致以支持混合精度训练
+        warm_embeddings = self.id_embedding[:self.num_user + self.num_warm_item]
+        cold_features = feature[self.num_warm_item:].to(warm_embeddings.dtype)
+        self.result = torch.cat((warm_embeddings, cold_features), dim=0)
 
         # 总损失：原始损失 + 新的邻居-物品损失
         total_loss = (self.contrastive_loss_1 * self.lr_lambda +
